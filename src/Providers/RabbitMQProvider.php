@@ -46,6 +46,8 @@ class RabbitMQProvider implements QueueProviderInterface
     public function connect(): bool
     {
         try {
+            error_log("Attempting to connect to RabbitMQ at {$this->host}:{$this->port}");
+            
             $this->connection = new AMQPStreamConnection(
                 $this->host,
                 $this->port,
@@ -55,6 +57,7 @@ class RabbitMQProvider implements QueueProviderInterface
             );
 
             $this->channel = $this->connection->channel();
+            error_log("Successfully connected to RabbitMQ");
             return true;
         } catch (\Exception $e) {
             error_log("RabbitMQ connection failed: " . $e->getMessage());

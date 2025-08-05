@@ -18,7 +18,14 @@ class CentralizedLogger
         // Set RabbitMQ as default provider
         $rabbitMQProvider = new \Ebilet\Common\Providers\RabbitMQProvider();
         $this->queueManager->setProvider($rabbitMQProvider);
-        $this->queueManager->connect();
+        
+        // Try to connect and log the result
+        $connected = $this->queueManager->connect();
+        if (!$connected) {
+            error_log("Failed to connect to RabbitMQ. Logs will be written to file only.");
+        } else {
+            error_log("Successfully connected to RabbitMQ.");
+        }
         
         $this->serviceName = $this->getEnv('APP_NAME', 'unknown-service');
     }
