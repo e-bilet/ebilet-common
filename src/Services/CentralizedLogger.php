@@ -10,9 +10,12 @@ class CentralizedLogger
 {
     private \Ebilet\Common\Managers\QueueManager $queueManager;
     private string $serviceName;
+    private ConfigManager $configManager;
 
     public function __construct()
     {
+        $this->configManager = new ConfigManager();
+        
         $this->queueManager = \Ebilet\Common\Managers\QueueManager::getInstance();
 
         $rabbitMQProvider = new \Ebilet\Common\Providers\RabbitMQProvider();
@@ -20,7 +23,16 @@ class CentralizedLogger
 
         $this->queueManager->connect();
 
-        $this->serviceName = $this->getEnv('APP_NAME', 'unknown-service');
+        $this->serviceName = $this->getServiceName();
+    }
+
+    /**
+     * Get service name from configuration.
+     */
+    private function getServiceName(): string
+    {
+        $loggingConfig = ConfigManager::getLoggingConfig();
+        return $loggingConfig['service_name'] ?? $this->getEnv('APP_NAME', 'unknown-service');
     }
 
     /**

@@ -317,6 +317,21 @@ Bu paket MIT lisansı altında lisanslanmıştır.
 
 ## 🔄 Versiyon Geçmişi
 
+### v1.2.1 (Current)
+- **ConfigManager sınıfı**: Config değerlerine esnek erişim
+- **Config Facade**: Kolay kullanım için facade
+- **Gelişmiş config yapısı**: Modüler ve organize config dosyaları
+- **Environment'a özel config**: Farklı ortamlar için özel konfigürasyon
+- **Config doğrulama sistemi**: Config değerlerinin geçerliliğini kontrol
+- **Kapsamlı dokümantasyon**: Detaylı kullanım kılavuzu
+- **Güvenlik iyileştirmeleri**: SSL/TLS desteği ve hassas veri filtreleme
+
+### v1.2.0
+- HTTP logging middleware
+- Performance monitoring özellikleri
+- Business events logging
+- Queue management sistemi
+
 ### v1.1.0
 - Laravel 12 uyumluluğu
 - Config-based architecture
