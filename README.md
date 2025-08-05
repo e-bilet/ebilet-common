@@ -1,17 +1,19 @@
 # E-Bilet Common Package
 
-E-Bilet mikroservisleri için ortak kullanılan bileşenler ve utility'ler.
+E-Bilet mikroservisleri için merkezi loglama ve ortak işlevler paketi. Laravel 12+ ile uyumlu, config-based architecture ve endpoint-specific logging özellikleri ile.
 
-## Özellikler
+## 🚀 Özellikler
 
-- **Merkezi Loglama Sistemi**: RabbitMQ üzerinden log-messages kanalına log gönderimi
-- **HTTP Request/Response Logging**: Otomatik HTTP istek/yanıt loglama
-- **Performance Monitoring**: Performans metrikleri izleme
-- **Business Event Logging**: İş olayları loglama
-- **Configuration Management**: Environment-based konfigürasyon
-- **Error Handling**: Gelişmiş hata yönetimi
+- **🔧 Config-Based Architecture**: Tüm ayarlar config dosyasından yönetilir
+- **🎯 Endpoint-Specific Logging**: Belirli endpoint'lerde HTTP loglama
+- **📊 Merkezi Loglama Sistemi**: RabbitMQ üzerinden log-messages kanalına log gönderimi
+- **🌐 HTTP Request/Response Logging**: Otomatik HTTP istek/yanıt loglama
+- **⚡ Performance Monitoring**: Performans metrikleri izleme
+- **📈 Business Event Logging**: İş olayları loglama
+- **🔒 Error Handling**: Gelişmiş hata yönetimi
+- **🎨 SOLID Principles**: Clean code ve yüksek OOP standartları
 
-## Kurulum
+## 📦 Kurulum
 
 ### 1. Composer ile Paketi Ekleyin
 
@@ -21,19 +23,19 @@ composer require ebilet/common
 
 ### 2. Service Provider'ı Kaydedin
 
-`config/app.php` dosyasında:
+`bootstrap/providers.php` dosyasında (Laravel 12):
 
 ```php
-'providers' => [
+return [
     // ...
     Ebilet\Common\ServiceProviders\LoggingServiceProvider::class,
-],
+];
 ```
 
 ### 3. Configuration Dosyasını Yayınlayın
 
 ```bash
-php artisan vendor:publish --tag=ebilet-common-config
+php artisan vendor:publish --provider="Ebilet\Common\ServiceProviders\LoggingServiceProvider"
 ```
 
 ### 4. Environment Variables'ları Ayarlayın
@@ -48,19 +50,21 @@ RABBITMQ_USER=guest
 RABBITMQ_PASSWORD=guest
 RABBITMQ_VHOST=/
 
-# Logging Configuration
-EBILET_LOGGING_ENABLED=true
-EBILET_LOG_CHANNEL=log-messages
-EBILET_METRICS_CHANNEL=metrics
-EBILET_EVENTS_CHANNEL=events
-
-# HTTP Logging
+# HTTP Logging Configuration
 EBILET_HTTP_LOGGING_ENABLED=true
-EBILET_HTTP_LOGGING_REQUEST_BODY=true
-EBILET_HTTP_LOGGING_RESPONSE_BODY=false
+EBILET_HTTP_LOGGING_ENDPOINTS=*
+EBILET_HTTP_LOGGING_EXCLUDED_PATHS=/health,/metrics
+
+# Queue Configuration
+EBILET_QUEUE_LOG_CHANNEL=log-messages
+EBILET_QUEUE_METRICS_CHANNEL=metrics
+EBILET_QUEUE_EVENTS_CHANNEL=events
+
+# Performance Monitoring
+EBILET_PERFORMANCE_MONITORING_ENABLED=true
 ```
 
-## Kullanım
+## 🎯 Kullanım
 
 ### 1. Basit Loglama
 
@@ -86,26 +90,38 @@ Log::logBusinessEvent('user_registered', [
 ]);
 ```
 
-### 2. Middleware Kullanımı
+### 2. Endpoint-Specific Middleware Kullanımı
 
-`app/Http/Kernel.php` dosyasında:
-
-```php
-protected $middleware = [
-    // ...
-    \Ebilet\Common\Middleware\HttpLoggingMiddleware::class,
-];
-```
-
-Veya route'larda:
+`bootstrap/app.php` dosyasında (Laravel 12):
 
 ```php
-Route::middleware(['ebilet.logging'])->group(function () {
-    // Routes
-});
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->web(append: [
+        \Ebilet\Common\Middleware\HttpLoggingMiddleware::class,
+    ]);
+    
+    $middleware->api(append: [
+        \Ebilet\Common\Middleware\HttpLoggingMiddleware::class,
+    ]);
+})
 ```
 
-### 3. Queue Manager Kullanımı
+### 3. Config-Based Endpoint Control
+
+`.env` dosyasında:
+
+```env
+# Tüm endpoint'lerde loglama
+EBILET_HTTP_LOGGING_ENDPOINTS=*
+
+# Sadece belirli endpoint'lerde loglama
+EBILET_HTTP_LOGGING_ENDPOINTS=GET:/api/users,POST:/api/auth,PUT:/api/profile
+
+# Wildcard kullanımı
+EBILET_HTTP_LOGGING_ENDPOINTS=GET:/api/*,POST:/api/*
+```
+
+### 4. Queue Manager Kullanımı
 
 ```php
 use Ebilet\Common\Facades\Queue;
@@ -118,7 +134,7 @@ Queue::sendLog([
     'message' => 'Test log',
     'level' => 'info',
     'context' => ['test' => true]
-]);
+], LogMessageType::APPLICATION_INFO);
 
 // Metric gönderimi
 Queue::sendMetric([
@@ -134,7 +150,7 @@ Queue::sendEvent([
 ]);
 ```
 
-### 4. Enum Kullanımı
+### 5. Enum Kullanımı
 
 ```php
 use Ebilet\Common\Enums\LogMessageType;
@@ -146,50 +162,86 @@ $isCritical = $messageType->isCritical(); // false
 $isPerformance = $messageType->isPerformance(); // false
 ```
 
-## Konfigürasyon
+## ⚙️ Konfigürasyon
 
-### RabbitMQ Ayarları
-
-```php
-'rabbitmq' => [
-    'host' => env('RABBITMQ_HOST', 'localhost'),
-    'port' => env('RABBITMQ_PORT', 5672),
-    'user' => env('RABBITMQ_USER', 'guest'),
-    'password' => env('RABBITMQ_PASSWORD', 'guest'),
-    'vhost' => env('RABBITMQ_VHOST', '/'),
-],
-```
-
-### Logging Ayarları
+### Config Dosyası: `config/ebilet-common.php`
 
 ```php
-'logging' => [
-    'enabled' => env('EBILET_LOGGING_ENABLED', true),
-    'service_name' => env('APP_NAME', 'unknown-service'),
-    'log_channel' => env('EBILET_LOG_CHANNEL', 'log-messages'),
-    'local_logging' => env('EBILET_LOCAL_LOGGING', true),
-],
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | RabbitMQ Configuration
+    |--------------------------------------------------------------------------
+    */
+    'rabbitmq' => [
+        'host' => env('RABBITMQ_HOST', 'localhost'),
+        'port' => env('RABBITMQ_PORT', 5672),
+        'user' => env('RABBITMQ_USER', 'guest'),
+        'password' => env('RABBITMQ_PASSWORD', 'guest'),
+        'vhost' => env('RABBITMQ_VHOST', '/'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Configuration
+    |--------------------------------------------------------------------------
+    */
+    'queues' => [
+        'channels' => [
+            'log_messages' => env('EBILET_QUEUE_LOG_CHANNEL', 'log-messages'),
+            'metrics' => env('EBILET_QUEUE_METRICS_CHANNEL', 'metrics'),
+            'events' => env('EBILET_QUEUE_EVENTS_CHANNEL', 'events'),
+        ],
+        'settings' => [
+            'log_messages' => [
+                'durable' => env('EBILET_QUEUE_LOG_DURABLE', true),
+                'ttl' => env('EBILET_QUEUE_LOG_TTL', 86400000), // 24 hours
+                'max_length' => env('EBILET_QUEUE_LOG_MAX_LENGTH', 10000),
+            ],
+            'metrics' => [
+                'durable' => env('EBILET_QUEUE_METRICS_DURABLE', true),
+                'ttl' => env('EBILET_QUEUE_METRICS_TTL', 604800000), // 7 days
+                'max_length' => env('EBILET_QUEUE_METRICS_MAX_LENGTH', 50000),
+            ],
+            'events' => [
+                'durable' => env('EBILET_QUEUE_EVENTS_DURABLE', true),
+                'ttl' => env('EBILET_QUEUE_EVENTS_TTL', 2592000000), // 30 days
+                'max_length' => env('EBILET_QUEUE_EVENTS_MAX_LENGTH', 100000),
+            ],
+        ],
+        'delivery_mode' => env('EBILET_QUEUE_DELIVERY_MODE', 2), // Persistent
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | HTTP Logging Configuration
+    |--------------------------------------------------------------------------
+    */
+    'http_logging' => [
+        'enabled' => env('EBILET_HTTP_LOGGING_ENABLED', true),
+        'endpoints' => env('EBILET_HTTP_LOGGING_ENDPOINTS', '*'),
+        'excluded_paths' => env('EBILET_HTTP_LOGGING_EXCLUDED_PATHS', [
+            '/health', '/metrics', '/favicon.ico', '/robots.txt', '/.well-known'
+        ]),
+        'excluded_methods' => env('EBILET_HTTP_LOGGING_EXCLUDED_METHODS', ['OPTIONS']),
+        'sensitive_headers' => env('EBILET_HTTP_LOGGING_SENSITIVE_HEADERS', [
+            'authorization', 'cookie', 'x-api-key', 'x-auth-token'
+        ]),
+        'log_request_body' => env('EBILET_HTTP_LOGGING_REQUEST_BODY', true),
+        'log_response_body' => env('EBILET_HTTP_LOGGING_RESPONSE_BODY', false),
+        'max_body_size' => env('EBILET_HTTP_LOGGING_MAX_BODY_SIZE', 1024 * 1024),
+        'slow_request_threshold' => env('EBILET_HTTP_LOGGING_SLOW_THRESHOLD', 2000),
+    ],
+];
 ```
 
-### HTTP Logging Ayarları
-
-```php
-'http_logging' => [
-    'enabled' => env('EBILET_HTTP_LOGGING_ENABLED', true),
-    'excluded_paths' => ['/health', '/metrics'],
-    'sensitive_headers' => ['authorization', 'cookie'],
-    'log_request_body' => true,
-    'log_response_body' => false,
-],
-```
-
-## Log Message Types
+## 📊 Log Message Types
 
 Paket aşağıdaki log mesaj tiplerini destekler:
 
 ### HTTP Logs
 - `HTTP_REQUEST`: HTTP istekleri
-- `HTTP_RESPONSE`: HTTP yanıtları
+- `HTTP_RESPONSE`: HTTP yanıtları  
 - `HTTP_ERROR`: HTTP hataları
 
 ### Application Logs
@@ -223,7 +275,7 @@ Paket aşağıdaki log mesaj tiplerini destekler:
 - `EXTERNAL_API_ERROR`: Dış API hataları
 - `EXTERNAL_SERVICE_TIMEOUT`: Dış servis timeout'ları
 
-## Error Handling
+## 🔧 Error Handling
 
 ```php
 use Ebilet\Common\Exceptions\LoggingException;
@@ -236,14 +288,22 @@ try {
 }
 ```
 
-## Test
+## 🧪 Test
 
 ```bash
 # Unit testleri çalıştırma
 ./vendor/bin/phpunit packages/ebilet/common/tests/
 ```
 
-## Katkıda Bulunma
+## 📋 Gereksinimler
+
+- **PHP**: ^8.2
+- **Laravel**: ^12.0
+- **RabbitMQ**: 3.8+
+- **php-amqplib**: ^3.0
+- **monolog**: ^3.0
+
+## 🤝 Katkıda Bulunma
 
 1. Fork yapın
 2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
@@ -251,6 +311,19 @@ try {
 4. Push yapın (`git push origin feature/amazing-feature`)
 5. Pull Request oluşturun
 
-## Lisans
+## 📄 Lisans
 
-Bu paket MIT lisansı altında lisanslanmıştır. 
+Bu paket MIT lisansı altında lisanslanmıştır.
+
+## 🔄 Versiyon Geçmişi
+
+### v1.1.0
+- Laravel 12 uyumluluğu
+- Config-based architecture
+- Endpoint-specific logging
+- Improved requirements
+
+### v1.0.0
+- İlk stable sürüm
+- Temel loglama özellikleri
+- RabbitMQ entegrasyonu

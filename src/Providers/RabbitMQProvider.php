@@ -155,12 +155,8 @@ class RabbitMQProvider implements QueueProviderInterface
     {
         try {
             if (!isset($this->channel)) {
-                \Log::error("RabbitMQProvider: No channel available for queue creation");
                 return false;
             }
-
-            \Log::info("RabbitMQProvider: Creating queue: {$queue}");
-            \Log::info("RabbitMQProvider: Options: " . json_encode($options));
 
             $arguments = $options['arguments'] ?? null;
             if (is_array($arguments)) {
@@ -177,11 +173,8 @@ class RabbitMQProvider implements QueueProviderInterface
                 $arguments
             );
 
-            \Log::info("RabbitMQProvider: Successfully created queue: {$queue}");
             return true;
         } catch (\Exception $e) {
-            \Log::error("RabbitMQProvider: Failed to create queue '{$queue}': " . $e->getMessage());
-            \Log::error("RabbitMQProvider: Exception trace: " . $e->getTraceAsString());
             return false;
         }
     }

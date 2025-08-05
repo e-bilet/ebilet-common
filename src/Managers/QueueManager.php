@@ -113,10 +113,7 @@ class QueueManager
                     'x-max-length' => $logSettings['max_length'] ?? 10000
                 ]
             ]);
-            
-            if (class_exists('\Log')) {
-                \Log::info("QueueManager: log-messages channel creation result: " . ($result ? 'success' : 'failed'));
-            }
+
         } catch (\Exception $e) {
             if (class_exists('\Log')) {
                 \Log::error("QueueManager: Failed to create log-messages channel: " . $e->getMessage());
@@ -135,10 +132,7 @@ class QueueManager
                     'x-max-length' => $metricsSettings['max_length'] ?? 50000
                 ]
             ]);
-            
-            if (class_exists('\Log')) {
-                \Log::info("QueueManager: metrics channel creation result: " . ($result ? 'success' : 'failed'));
-            }
+
         } catch (\Exception $e) {
             if (class_exists('\Log')) {
                 \Log::error("QueueManager: Failed to create metrics channel: " . $e->getMessage());
@@ -157,10 +151,7 @@ class QueueManager
                     'x-max-length' => $eventsSettings['max_length'] ?? 100000
                 ]
             ]);
-            
-            if (class_exists('\Log')) {
-                \Log::info("QueueManager: events channel creation result: " . ($result ? 'success' : 'failed'));
-            }
+
         } catch (\Exception $e) {
             if (class_exists('\Log')) {
                 \Log::error("QueueManager: Failed to create events channel: " . $e->getMessage());
