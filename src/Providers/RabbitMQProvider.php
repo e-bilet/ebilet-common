@@ -2,6 +2,7 @@
 
 namespace Ebilet\Common\Providers;
 
+use PhpAmqpLib\Wire\AMQPTable;
 use Ebilet\Common\Interfaces\QueueProviderInterface;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -9,7 +10,7 @@ use PhpAmqpLib\Channel\AMQPChannel;
 
 /**
  * RabbitMQ Queue Provider
- * 
+ *
  * RabbitMQ queue sistemi için provider implementation.
  */
 class RabbitMQProvider implements QueueProviderInterface
@@ -47,7 +48,7 @@ class RabbitMQProvider implements QueueProviderInterface
     {
         try {
             error_log("Attempting to connect to RabbitMQ at {$this->host}:{$this->port}");
-            
+
             $this->connection = new AMQPStreamConnection(
                 $this->host,
                 $this->port,
@@ -149,11 +150,21 @@ class RabbitMQProvider implements QueueProviderInterface
     /**
      * Create queue if not exists
      */
+
     public function createQueue(string $queue, array $options = []): bool
     {
         try {
             if (!isset($this->channel)) {
+                \Log::error("RabbitMQProvider: No channel available for queue creation");
                 return false;
+            }
+
+            \Log::info("RabbitMQProvider: Creating queue: {$queue}");
+            \Log::info("RabbitMQProvider: Options: " . json_encode($options));
+
+            $arguments = $options['arguments'] ?? null;
+            if (is_array($arguments)) {
+                $arguments = new AMQPTable($arguments);
             }
 
             $this->channel->queue_declare(
@@ -163,12 +174,14 @@ class RabbitMQProvider implements QueueProviderInterface
                 $options['exclusive'] ?? false,
                 $options['auto_delete'] ?? false,
                 $options['nowait'] ?? false,
-                $options['arguments'] ?? null
+                $arguments
             );
 
+            \Log::info("RabbitMQProvider: Successfully created queue: {$queue}");
             return true;
         } catch (\Exception $e) {
-            error_log("Failed to create queue: " . $e->getMessage());
+            \Log::error("RabbitMQProvider: Failed to create queue '{$queue}': " . $e->getMessage());
+            \Log::error("RabbitMQProvider: Exception trace: " . $e->getTraceAsString());
             return false;
         }
     }
@@ -227,4 +240,4 @@ class RabbitMQProvider implements QueueProviderInterface
     {
         return 'rabbitmq';
     }
-} 
+}

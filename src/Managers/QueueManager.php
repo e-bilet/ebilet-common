@@ -8,7 +8,7 @@ use Ebilet\Common\Enums\LogMessageType;
 
 /**
  * Queue Manager
- * 
+ *
  * Merkezi queue yönetimi için singleton pattern kullanan manager sınıfı.
  * Strategy pattern ile farklı queue provider'ları destekler.
  */
@@ -58,13 +58,27 @@ class QueueManager
      */
     public function connect(): bool
     {
+        if (class_exists('\Log')) {
+            \Log::info("QueueManager: Starting connection");
+        }
+
         if (!$this->provider) {
+            if (class_exists('\Log')) {
+                \Log::info("QueueManager: Creating new RabbitMQProvider");
+            }
             $this->provider = new RabbitMQProvider();
         }
 
         $this->isConnected = $this->provider->connect();
-        
+
+        if (class_exists('\Log')) {
+            \Log::info("QueueManager: Provider connection result: " . ($this->isConnected ? 'success' : 'failed'));
+        }
+
         if ($this->isConnected) {
+            if (class_exists('\Log')) {
+                \Log::info("QueueManager: Initializing channels");
+            }
             $this->initializeChannels();
         }
 
@@ -175,7 +189,7 @@ class QueueManager
         }
 
         $messageType ??= LogMessageType::APPLICATION_INFO;
-        
+
         $enrichedLogData = array_merge($logData, [
             'message_type' => $messageType->value,
             'log_level' => $messageType->getLogLevel(),
