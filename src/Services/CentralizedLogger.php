@@ -4,6 +4,7 @@ namespace Ebilet\Common\Services;
 
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+use Ebilet\Common\Enums\LogMessageType;
 
 class CentralizedLogger
 {
@@ -112,11 +113,27 @@ class CentralizedLogger
             'memory_peak' => memory_get_peak_usage(true)
         ];
 
+        // Determine message type based on level
+        $messageType = $this->getMessageTypeFromLevel($level);
+
         // Send to queue
-        $this->queueManager->sendLog($logData);
+        $this->queueManager->sendLog($logData, $messageType);
 
         // Also log to local file as backup
         $this->logToFile($level, $message, $context);
+    }
+
+    /**
+     * Get message type from log level
+     */
+    private function getMessageTypeFromLevel(string $level): LogMessageType
+    {
+        return match(strtolower($level)) {
+            'emergency', 'critical', 'error' => LogMessageType::APPLICATION_ERROR,
+            'warning' => LogMessageType::APPLICATION_WARNING,
+            'debug' => LogMessageType::APPLICATION_DEBUG,
+            default => LogMessageType::APPLICATION_INFO
+        };
     }
 
     /**
@@ -159,13 +176,22 @@ class CentralizedLogger
      */
     public function logHttpRequest(string $method, string $url, array $headers = [], array $body = []): void
     {
-        $this->info('HTTP Request', [
+        $logData = [
             'method' => $method,
             'url' => $url,
             'headers' => $headers,
             'body' => $body,
-            'type' => 'http_request'
-        ]);
+            'message' => 'HTTP Request',
+            'context' => [
+                'method' => $method,
+                'url' => $url,
+                'headers' => $headers,
+                'body' => $body
+            ]
+        ];
+
+        $this->queueManager->sendLog($logData, LogMessageType::HTTP_REQUEST);
+        $this->logToFile('info', 'HTTP Request', $logData['context']);
     }
 
     /**
@@ -173,13 +199,24 @@ class CentralizedLogger
      */
     public function logHttpResponse(int $statusCode, array $headers = [], string $body = '', float $duration = 0): void
     {
-        $this->info('HTTP Response', [
+        $messageType = $statusCode >= 400 ? LogMessageType::HTTP_ERROR : LogMessageType::HTTP_RESPONSE;
+        
+        $logData = [
             'status_code' => $statusCode,
             'headers' => $headers,
             'body' => $body,
             'duration_ms' => round($duration * 1000, 2),
-            'type' => 'http_response'
-        ]);
+            'message' => 'HTTP Response',
+            'context' => [
+                'status_code' => $statusCode,
+                'headers' => $headers,
+                'body' => $body,
+                'duration_ms' => round($duration * 1000, 2)
+            ]
+        ];
+
+        $this->queueManager->sendLog($logData, $messageType);
+        $this->logToFile('info', 'HTTP Response', $logData['context']);
     }
 
     /**
@@ -187,12 +224,20 @@ class CentralizedLogger
      */
     public function logPerformance(string $operation, float $duration, array $metadata = []): void
     {
-        $this->info('Performance Metric', [
+        $logData = [
             'operation' => $operation,
             'duration_ms' => round($duration * 1000, 2),
             'metadata' => $metadata,
-            'type' => 'performance'
-        ]);
+            'message' => 'Performance Metric',
+            'context' => [
+                'operation' => $operation,
+                'duration_ms' => round($duration * 1000, 2),
+                'metadata' => $metadata
+            ]
+        ];
+
+        $this->queueManager->sendLog($logData, LogMessageType::PERFORMANCE_METRIC);
+        $this->logToFile('info', 'Performance Metric', $logData['context']);
     }
 
     /**
@@ -200,10 +245,17 @@ class CentralizedLogger
      */
     public function logBusinessEvent(string $event, array $data = []): void
     {
-        $this->info('Business Event', [
+        $logData = [
             'event' => $event,
             'data' => $data,
-            'type' => 'business_event'
-        ]);
+            'message' => 'Business Event',
+            'context' => [
+                'event' => $event,
+                'data' => $data
+            ]
+        ];
+
+        $this->queueManager->sendLog($logData, LogMessageType::BUSINESS_EVENT);
+        $this->logToFile('info', 'Business Event', $logData['context']);
     }
 } 

@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Ebilet\Common\Services\Logger;
 use Ebilet\Common\Services\CentralizedLogger;
 use Ebilet\Common\Managers\QueueManager;
+use Ebilet\Common\Enums\LogMessageType;
 
 class LoggerTest extends TestCase
 {
@@ -114,6 +115,35 @@ class LoggerTest extends TestCase
         
         // Test provider name
         $this->assertEquals('rabbitmq', $queueManager->getProviderName());
+        
+        // Test channel names
+        $this->assertEquals('log-messages', $queueManager->getLogChannel());
+        $this->assertEquals('metrics', $queueManager->getMetricsChannel());
+        $this->assertEquals('events', $queueManager->getEventsChannel());
+    }
+
+    public function test_log_message_type_enum()
+    {
+        // Test HTTP request type
+        $httpRequest = LogMessageType::HTTP_REQUEST;
+        $this->assertEquals('http_request', $httpRequest->value);
+        $this->assertEquals('info', $httpRequest->getLogLevel());
+        $this->assertFalse($httpRequest->isCritical());
+        $this->assertFalse($httpRequest->isPerformance());
+
+        // Test application error type
+        $appError = LogMessageType::APPLICATION_ERROR;
+        $this->assertEquals('application_error', $appError->value);
+        $this->assertEquals('error', $appError->getLogLevel());
+        $this->assertTrue($appError->isCritical());
+        $this->assertFalse($appError->isPerformance());
+
+        // Test performance metric type
+        $perfMetric = LogMessageType::PERFORMANCE_METRIC;
+        $this->assertEquals('performance_metric', $perfMetric->value);
+        $this->assertEquals('info', $perfMetric->getLogLevel());
+        $this->assertFalse($perfMetric->isCritical());
+        $this->assertTrue($perfMetric->isPerformance());
     }
 
     public function test_logger_with_all_levels()

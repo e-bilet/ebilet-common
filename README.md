@@ -1,304 +1,44 @@
 # E-Bilet Common Package
 
-Ortak bileşenler ve utilities - Logging, helpers, shared models ve common utilities.
+E-Bilet mikroservisleri için ortak kullanılan bileşenler ve utility'ler.
 
-## 🚀 Özellikler
+## Özellikler
 
-### **Logging**
-- **Framework Independent**: Laravel dependency'si yok, herhangi bir PHP projesinde kullanılabilir
-- **Centralized Logging**: Merkezi loglama sistemi
-- **Performance Monitoring**: Performans metriklerini loglar
-- **HTTP Request/Response Logging**: HTTP isteklerini detaylı loglar
-- **Business Event Logging**: İş olaylarını loglar
-- **Fallback Logging**: Queue erişilemezse dosyaya loglar
+- **Merkezi Loglama Sistemi**: RabbitMQ üzerinden log-messages kanalına log gönderimi
+- **HTTP Request/Response Logging**: Otomatik HTTP istek/yanıt loglama
+- **Performance Monitoring**: Performans metrikleri izleme
+- **Business Event Logging**: İş olayları loglama
+- **Configuration Management**: Environment-based konfigürasyon
+- **Error Handling**: Gelişmiş hata yönetimi
 
-### **Queue Management**
-- **Strategy Pattern**: Farklı queue provider'ları (RabbitMQ, Redis, SQS, etc.)
-- **Extensible**: Yeni queue provider'ları kolayca eklenebilir
-- **Testable**: Mock queue provider'ları ile test edilebilir
-- **Reusable**: Tüm queue işlemleri için tek interface
-- **Environment Variables**: Projenin .env dosyasından queue ayarlarını okur
+## Kurulum
 
-## 📦 Kurulum
-
-### 1. Composer ile ekle
+### 1. Composer ile Paketi Ekleyin
 
 ```bash
 composer require ebilet/common
 ```
 
-### 2. Environment variables ekle
+### 2. Service Provider'ı Kaydedin
 
-`.env` dosyasına ekle:
-
-```env
-# RabbitMQ Configuration
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
-RABBITMQ_VHOST=/
-
-# Application Configuration
-APP_NAME=auth-service
-LOG_PATH=logs
-```
-
-## 🔧 Kullanım
-
-### Laravel Entegrasyonu
-
-1. **Service Provider'ı kaydet:**
+`config/app.php` dosyasında:
 
 ```php
-// bootstrap/providers.php (Laravel 12)
-return [
-    App\Providers\AppServiceProvider::class,
+'providers' => [
+    // ...
     Ebilet\Common\ServiceProviders\LoggingServiceProvider::class,
-];
+],
 ```
 
-2. **Config dosyasını yayınla:**
+### 3. Configuration Dosyasını Yayınlayın
 
 ```bash
 php artisan vendor:publish --tag=ebilet-common-config
 ```
 
-3. **Middleware'i kullan:**
+### 4. Environment Variables'ları Ayarlayın
 
-```php
-// routes/api.php
-Route::middleware(['ebilet.logging'])->group(function () {
-    // API routes
-});
-```
-
-4. **Environment variables ekle:**
-
-```env
-# Logging
-EBILET_LOGGING_ENABLED=true
-EBILET_HTTP_LOGGING_ENABLED=true
-EBILET_PERFORMANCE_LOGGING=true
-EBILET_BUSINESS_EVENT_LOGGING=true
-
-# Queue
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
-RABBITMQ_VHOST=/
-```
-
-### Temel Logging
-
-```php
-use Ebilet\Common\Logger;
-
-// Standart log seviyeleri
-Logger::info('User logged in', ['user_id' => 123]);
-Logger::error('Database connection failed', ['error' => $e->getMessage()]);
-Logger::debug('Processing request', ['request_id' => $requestId]);
-```
-
-### Queue Management
-
-```php
-use Ebilet\Common\Facades\Queue;
-
-// Send log to queue
-Queue::sendLog(['message' => 'Test log'], 'logs');
-
-// Send metric to queue
-Queue::sendMetric(['metric' => 'response_time', 'value' => 0.5], 'metrics');
-
-// Send event to queue
-Queue::sendEvent(['event' => 'user_registered', 'user_id' => 123], 'events');
-
-// Custom queue operations
-Queue::send('custom-queue', ['data' => 'test'], ['priority' => 'high']);
-```
-
-### HTTP Request/Response Logging
-
-```php
-// Request logging
-Logger::logHttpRequest(
-    'POST',
-    'https://api.ebilet.com/auth/login',
-    ['Content-Type' => 'application/json'],
-    ['email' => 'user@example.com']
-);
-
-// Response logging
-Logger::logHttpResponse(
-    200,
-    ['Content-Type' => 'application/json'],
-    '{"token": "abc123"}',
-    0.045 // duration in seconds
-);
-```
-
-### Performance Logging
-
-```php
-$startTime = microtime(true);
-
-// ... perform operation ...
-
-$duration = microtime(true) - $startTime;
-Logger::logPerformance('database_query', $duration, [
-    'table' => 'users',
-    'query' => 'SELECT * FROM users WHERE id = ?'
-]);
-```
-
-### Business Event Logging
-
-```php
-Logger::logBusinessEvent('user_registered', [
-    'user_id' => 123,
-    'email' => 'user@example.com',
-    'registration_method' => 'email'
-]);
-
-Logger::logBusinessEvent('order_created', [
-    'order_id' => 456,
-    'total_amount' => 150.00,
-    'payment_method' => 'credit_card'
-]);
-```
-
-## 📊 Log Formatı
-
-### RabbitMQ'ya Gönderilen Log Mesajı
-
-```json
-{
-    "service": "auth-service",
-    "level": "info",
-    "message": "User logged in",
-    "context": {
-        "user_id": 123,
-        "ip": "192.168.1.1"
-    },
-    "timestamp": "2024-01-15T00:34:13.000000Z",
-    "host": "auth-service-1",
-    "pid": 12345,
-    "memory_usage": 1048576,
-    "memory_peak": 2097152
-}
-```
-
-### HTTP Request Log
-
-```json
-{
-    "service": "auth-service",
-    "level": "info",
-    "message": "HTTP Request",
-    "context": {
-        "method": "POST",
-        "url": "https://api.ebilet.com/auth/login",
-        "headers": {
-            "Content-Type": "application/json"
-        },
-        "body": {
-            "email": "user@example.com"
-        },
-        "type": "http_request"
-    },
-    "timestamp": "2024-01-15T00:34:13.000000Z"
-}
-```
-
-## 🔄 RabbitMQ Konfigürasyonu
-
-### Exchange Oluşturma
-
-```bash
-# RabbitMQ Management UI'da veya CLI ile
-rabbitmqadmin declare exchange name=log-messages type=topic durable=true
-```
-
-### Queue Oluşturma
-
-```bash
-# Graylog consumer için queue
-rabbitmqadmin declare queue name=graylog-logs durable=true
-rabbitmqadmin declare binding source=log-messages destination=graylog-logs routing_key=logs
-```
-
-## 🛠️ Middleware Kullanımı
-
-### HTTP Logging Middleware
-
-```php
-use Ebilet\Logging\Logger;
-
-class HttpLoggingMiddleware
-{
-    public function handle($request, Closure $next)
-    {
-        $startTime = microtime(true);
-        
-        // Log request
-        Logger::logHttpRequest(
-            $request->method(),
-            $request->fullUrl(),
-            $request->headers->all(),
-            $request->all()
-        );
-        
-        $response = $next($request);
-        
-        $duration = microtime(true) - $startTime;
-        
-        // Log response
-        Logger::logHttpResponse(
-            $response->getStatusCode(),
-            $response->headers->all(),
-            $response->getContent(),
-            $duration
-        );
-        
-        return $response;
-    }
-}
-```
-
-## 📈 Graylog Entegrasyonu
-
-### Graylog Input Konfigürasyonu
-
-Graylog'ta RabbitMQ input oluştur:
-
-1. **System > Inputs** bölümüne git
-2. **RabbitMQ** input tipini seç
-3. **Configuration**:
-   - **Host**: RabbitMQ host
-   - **Port**: 5672
-   - **Username**: guest
-   - **Password**: guest
-   - **Queue**: graylog-logs
-   - **Exchange**: log-messages
-
-### Log Formatı
-
-Graylog'ta log mesajları şu formatta görünecek:
-
-```
-Service: auth-service
-Level: info
-Message: User logged in
-Context: {"user_id": 123, "ip": "192.168.1.1"}
-Timestamp: 2024-01-15T00:34:13.000000Z
-Host: auth-service-1
-```
-
-## 🔧 Environment Variables
-
-### Gerekli Environment Variables
+`.env` dosyasında:
 
 ```env
 # RabbitMQ Configuration
@@ -308,69 +48,209 @@ RABBITMQ_USER=guest
 RABBITMQ_PASSWORD=guest
 RABBITMQ_VHOST=/
 
-# Application Configuration
-APP_NAME=auth-service
-LOG_PATH=logs
-```
-
-### Opsiyonel Environment Variables
-
-```env
 # Logging Configuration
 EBILET_LOGGING_ENABLED=true
-EBILET_PERFORMANCE_LOGGING=true
-EBILET_HTTP_LOGGING=true
-EBILET_BUSINESS_EVENT_LOGGING=true
-EBILET_FALLBACK_LOGGING=true
+EBILET_LOG_CHANNEL=log-messages
+EBILET_METRICS_CHANNEL=metrics
+EBILET_EVENTS_CHANNEL=events
+
+# HTTP Logging
+EBILET_HTTP_LOGGING_ENABLED=true
+EBILET_HTTP_LOGGING_REQUEST_BODY=true
+EBILET_HTTP_LOGGING_RESPONSE_BODY=false
 ```
 
-## 🧪 Test
+## Kullanım
 
-### Unit Test Örneği
+### 1. Basit Loglama
 
 ```php
-use Ebilet\Logging\Logger;
+use Ebilet\Common\Facades\Log;
 
-class LoggingTest extends TestCase
-{
-    public function test_can_log_message()
-    {
-        Logger::info('Test message', ['test' => true]);
-        
-        // Assert log was sent to RabbitMQ
-        $this->assertTrue(true); // Add your assertions
-    }
+// Temel loglama
+Log::info('Kullanıcı giriş yaptı', ['user_id' => 123]);
+Log::error('Veritabanı bağlantı hatası', ['error' => $exception->getMessage()]);
+Log::warning('Yavaş sorgu tespit edildi', ['query' => $sql, 'duration' => 2.5]);
+
+// HTTP loglama
+Log::logHttpRequest('POST', '/api/users', $headers, $body);
+Log::logHttpResponse(200, $responseHeaders, $responseBody, 0.15);
+
+// Performans metrikleri
+Log::logPerformance('database_query', 0.05, ['table' => 'users']);
+
+// İş olayları
+Log::logBusinessEvent('user_registered', [
+    'user_id' => 123,
+    'email' => 'user@example.com'
+]);
+```
+
+### 2. Middleware Kullanımı
+
+`app/Http/Kernel.php` dosyasında:
+
+```php
+protected $middleware = [
+    // ...
+    \Ebilet\Common\Middleware\HttpLoggingMiddleware::class,
+];
+```
+
+Veya route'larda:
+
+```php
+Route::middleware(['ebilet.logging'])->group(function () {
+    // Routes
+});
+```
+
+### 3. Queue Manager Kullanımı
+
+```php
+use Ebilet\Common\Facades\Queue;
+
+// Queue bağlantısı
+Queue::connect();
+
+// Log gönderimi
+Queue::sendLog([
+    'message' => 'Test log',
+    'level' => 'info',
+    'context' => ['test' => true]
+]);
+
+// Metric gönderimi
+Queue::sendMetric([
+    'metric' => 'response_time',
+    'value' => 0.15,
+    'unit' => 'seconds'
+]);
+
+// Event gönderimi
+Queue::sendEvent([
+    'event' => 'user_registered',
+    'data' => ['user_id' => 123]
+]);
+```
+
+### 4. Enum Kullanımı
+
+```php
+use Ebilet\Common\Enums\LogMessageType;
+
+// Log mesaj tipi belirleme
+$messageType = LogMessageType::HTTP_REQUEST;
+$logLevel = $messageType->getLogLevel(); // 'info'
+$isCritical = $messageType->isCritical(); // false
+$isPerformance = $messageType->isPerformance(); // false
+```
+
+## Konfigürasyon
+
+### RabbitMQ Ayarları
+
+```php
+'rabbitmq' => [
+    'host' => env('RABBITMQ_HOST', 'localhost'),
+    'port' => env('RABBITMQ_PORT', 5672),
+    'user' => env('RABBITMQ_USER', 'guest'),
+    'password' => env('RABBITMQ_PASSWORD', 'guest'),
+    'vhost' => env('RABBITMQ_VHOST', '/'),
+],
+```
+
+### Logging Ayarları
+
+```php
+'logging' => [
+    'enabled' => env('EBILET_LOGGING_ENABLED', true),
+    'service_name' => env('APP_NAME', 'unknown-service'),
+    'log_channel' => env('EBILET_LOG_CHANNEL', 'log-messages'),
+    'local_logging' => env('EBILET_LOCAL_LOGGING', true),
+],
+```
+
+### HTTP Logging Ayarları
+
+```php
+'http_logging' => [
+    'enabled' => env('EBILET_HTTP_LOGGING_ENABLED', true),
+    'excluded_paths' => ['/health', '/metrics'],
+    'sensitive_headers' => ['authorization', 'cookie'],
+    'log_request_body' => true,
+    'log_response_body' => false,
+],
+```
+
+## Log Message Types
+
+Paket aşağıdaki log mesaj tiplerini destekler:
+
+### HTTP Logs
+- `HTTP_REQUEST`: HTTP istekleri
+- `HTTP_RESPONSE`: HTTP yanıtları
+- `HTTP_ERROR`: HTTP hataları
+
+### Application Logs
+- `APPLICATION_INFO`: Genel bilgi logları
+- `APPLICATION_ERROR`: Uygulama hataları
+- `APPLICATION_WARNING`: Uyarılar
+- `APPLICATION_DEBUG`: Debug logları
+
+### Performance Logs
+- `PERFORMANCE_METRIC`: Performans metrikleri
+- `SLOW_REQUEST`: Yavaş istekler
+- `MEMORY_USAGE`: Bellek kullanımı
+
+### Business Event Logs
+- `BUSINESS_EVENT`: İş olayları
+- `USER_ACTION`: Kullanıcı aksiyonları
+- `SYSTEM_EVENT`: Sistem olayları
+
+### Security Logs
+- `SECURITY_ALERT`: Güvenlik uyarıları
+- `AUTHENTICATION`: Kimlik doğrulama
+- `AUTHORIZATION`: Yetkilendirme
+
+### Database Logs
+- `DATABASE_QUERY`: Veritabanı sorguları
+- `DATABASE_ERROR`: Veritabanı hataları
+- `DATABASE_SLOW_QUERY`: Yavaş sorgular
+
+### External Service Logs
+- `EXTERNAL_API_CALL`: Dış API çağrıları
+- `EXTERNAL_API_ERROR`: Dış API hataları
+- `EXTERNAL_SERVICE_TIMEOUT`: Dış servis timeout'ları
+
+## Error Handling
+
+```php
+use Ebilet\Common\Exceptions\LoggingException;
+
+try {
+    Log::info('Test message');
+} catch (LoggingException $e) {
+    // Logging hatası yönetimi
+    error_log("Logging error: " . $e->getMessage());
 }
 ```
 
-## 🔄 Framework Entegrasyonu
+## Test
 
-### Laravel ile Kullanım
-
-```php
-// config/app.php
-'providers' => [
-    // ...
-    Ebilet\Logging\LoggingServiceProvider::class,
-],
-
-// Kullanım
-use Ebilet\Logging\Facades\Log;
-
-Log::info('User logged in', ['user_id' => 123]);
+```bash
+# Unit testleri çalıştırma
+./vendor/bin/phpunit packages/ebilet/common/tests/
 ```
 
-### Standalone PHP ile Kullanım
+## Katkıda Bulunma
 
-```php
-require_once 'vendor/autoload.php';
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Commit yapın (`git commit -m 'Add amazing feature'`)
+4. Push yapın (`git push origin feature/amazing-feature`)
+5. Pull Request oluşturun
 
-use Ebilet\Logging\Logger;
+## Lisans
 
-Logger::info('Application started');
-Logger::logBusinessEvent('user_registered', ['user_id' => 123]);
-```
-
-## 📝 Lisans
-
-MIT License 
+Bu paket MIT lisansı altında lisanslanmıştır. 
