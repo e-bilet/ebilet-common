@@ -13,21 +13,27 @@ class CentralizedLogger
 
     public function __construct()
     {
+        error_log("CentralizedLogger: Constructor started");
+        
         $this->queueManager = \Ebilet\Common\Managers\QueueManager::getInstance();
+        error_log("CentralizedLogger: QueueManager instance created");
         
         // Set RabbitMQ as default provider
         $rabbitMQProvider = new \Ebilet\Common\Providers\RabbitMQProvider();
         $this->queueManager->setProvider($rabbitMQProvider);
+        error_log("CentralizedLogger: RabbitMQProvider set");
         
         // Try to connect and log the result
         $connected = $this->queueManager->connect();
         if (!$connected) {
-            error_log("Failed to connect to RabbitMQ. Logs will be written to file only.");
+            error_log("CentralizedLogger: Failed to connect to RabbitMQ. Logs will be written to file only.");
         } else {
-            error_log("Successfully connected to RabbitMQ.");
+            error_log("CentralizedLogger: Successfully connected to RabbitMQ.");
         }
         
         $this->serviceName = $this->getEnv('APP_NAME', 'unknown-service');
+        error_log("CentralizedLogger: Service name set to: " . $this->serviceName);
+        error_log("CentralizedLogger: Constructor completed");
     }
 
     /**
