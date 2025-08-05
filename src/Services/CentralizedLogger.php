@@ -13,27 +13,40 @@ class CentralizedLogger
 
     public function __construct()
     {
-        error_log("CentralizedLogger: Constructor started");
+        // Use Laravel's log system for debugging
+        if (class_exists('\Log')) {
+            \Log::info("CentralizedLogger: Constructor started");
+        }
         
         $this->queueManager = \Ebilet\Common\Managers\QueueManager::getInstance();
-        error_log("CentralizedLogger: QueueManager instance created");
+        if (class_exists('\Log')) {
+            \Log::info("CentralizedLogger: QueueManager instance created");
+        }
         
         // Set RabbitMQ as default provider
         $rabbitMQProvider = new \Ebilet\Common\Providers\RabbitMQProvider();
         $this->queueManager->setProvider($rabbitMQProvider);
-        error_log("CentralizedLogger: RabbitMQProvider set");
+        if (class_exists('\Log')) {
+            \Log::info("CentralizedLogger: RabbitMQProvider set");
+        }
         
         // Try to connect and log the result
         $connected = $this->queueManager->connect();
         if (!$connected) {
-            error_log("CentralizedLogger: Failed to connect to RabbitMQ. Logs will be written to file only.");
+            if (class_exists('\Log')) {
+                \Log::error("CentralizedLogger: Failed to connect to RabbitMQ. Logs will be written to file only.");
+            }
         } else {
-            error_log("CentralizedLogger: Successfully connected to RabbitMQ.");
+            if (class_exists('\Log')) {
+                \Log::info("CentralizedLogger: Successfully connected to RabbitMQ.");
+            }
         }
         
         $this->serviceName = $this->getEnv('APP_NAME', 'unknown-service');
-        error_log("CentralizedLogger: Service name set to: " . $this->serviceName);
-        error_log("CentralizedLogger: Constructor completed");
+        if (class_exists('\Log')) {
+            \Log::info("CentralizedLogger: Service name set to: " . $this->serviceName);
+            \Log::info("CentralizedLogger: Constructor completed");
+        }
     }
 
     /**

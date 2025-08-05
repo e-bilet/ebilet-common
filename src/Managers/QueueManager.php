@@ -96,11 +96,15 @@ class QueueManager
     private function initializeChannels(): void
     {
         if (!$this->provider) {
-            error_log("QueueManager: No provider available for channel initialization");
+            if (class_exists('\Log')) {
+                \Log::error("QueueManager: No provider available for channel initialization");
+            }
             return;
         }
 
-        error_log("QueueManager: Starting channel initialization");
+        if (class_exists('\Log')) {
+            \Log::info("QueueManager: Starting channel initialization");
+        }
 
         // Create log-messages channel
         try {
@@ -111,9 +115,13 @@ class QueueManager
                     'x-max-length' => 10000
                 ]
             ]);
-            error_log("QueueManager: log-messages channel creation result: " . ($result ? 'success' : 'failed'));
+            if (class_exists('\Log')) {
+                \Log::info("QueueManager: log-messages channel creation result: " . ($result ? 'success' : 'failed'));
+            }
         } catch (\Exception $e) {
-            error_log("QueueManager: Failed to create log-messages channel: " . $e->getMessage());
+            if (class_exists('\Log')) {
+                \Log::error("QueueManager: Failed to create log-messages channel: " . $e->getMessage());
+            }
         }
 
         // Create metrics channel
@@ -125,9 +133,13 @@ class QueueManager
                     'x-max-length' => 50000
                 ]
             ]);
-            error_log("QueueManager: metrics channel creation result: " . ($result ? 'success' : 'failed'));
+            if (class_exists('\Log')) {
+                \Log::info("QueueManager: metrics channel creation result: " . ($result ? 'success' : 'failed'));
+            }
         } catch (\Exception $e) {
-            error_log("QueueManager: Failed to create metrics channel: " . $e->getMessage());
+            if (class_exists('\Log')) {
+                \Log::error("QueueManager: Failed to create metrics channel: " . $e->getMessage());
+            }
         }
 
         // Create events channel
@@ -139,12 +151,18 @@ class QueueManager
                     'x-max-length' => 100000
                 ]
             ]);
-            error_log("QueueManager: events channel creation result: " . ($result ? 'success' : 'failed'));
+            if (class_exists('\Log')) {
+                \Log::info("QueueManager: events channel creation result: " . ($result ? 'success' : 'failed'));
+            }
         } catch (\Exception $e) {
-            error_log("QueueManager: Failed to create events channel: " . $e->getMessage());
+            if (class_exists('\Log')) {
+                \Log::error("QueueManager: Failed to create events channel: " . $e->getMessage());
+            }
         }
 
-        error_log("QueueManager: Channel initialization completed");
+        if (class_exists('\Log')) {
+            \Log::info("QueueManager: Channel initialization completed");
+        }
     }
 
     /**
