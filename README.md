@@ -317,6 +317,26 @@ Bu paket MIT lisansı altında lisanslanmıştır.
 
 ## 🔄 Versiyon Geçmişi
 
+### v1.2.2 (Current)
+- **Service Communication System**: Tamamen yeni servisler arası iletişim sistemi
+- **SOLID Architecture**: Interface, Factory, Manager pattern'leri ile temiz mimari
+- **User & Order Facades**: Basit facade kullanımı (`User::get()`, `Order::post()`)
+- **Configuration Driven**: Config'den service URL'leri okuma
+- **Error Handling**: Kapsamlı error handling ve logging
+- **Health Check**: Service sağlık kontrolü
+- **Method Chaining**: `withToken()`, `withHeaders()`, `timeout()` chaining
+
+### v1.2.1
+- ConfigManager ve Config Facade
+- Geliştirilmiş config yapısı
+- Kapsamlı dokümantasyon
+- Güvenlik ayarları
+
+### v1.2.0
+- Centralized Logger
+- Queue Manager
+- HTTP Logging Middleware
+
 ### v1.1.0
 - Laravel 12 uyumluluğu
 - Config-based architecture

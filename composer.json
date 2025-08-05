@@ -1,6 +1,7 @@
 {
     "name": "ebilet/common",
     "description": "E-Bilet Common Package - Merkezi loglama ve ortak işlevler için",
+    "version": "1.2.2",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -31,7 +32,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Ebilet\\Common\\ServiceProviders\\LoggingServiceProvider"
+                "Ebilet\\Common\\ServiceProviders\\LoggingServiceProvider",
+                "Ebilet\\Common\\ServiceProviders\\ServiceCommunicationProvider"
             ]
         }
     },
