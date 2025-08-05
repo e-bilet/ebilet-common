@@ -9,18 +9,18 @@ use Ebilet\Common\Exceptions\ServiceConfigurationException;
 class ServiceClientFactory
 {
     /**
-     * Create a service client instance
-     */
+    * Create a service client instance
+    */
     public function create(string $serviceName): ServiceClientInterface
     {
         $this->validateServiceConfiguration($serviceName);
         
         return new ServiceClient($serviceName);
     }
-
+    
     /**
-     * Validate service configuration exists
-     */
+    * Validate service configuration exists
+    */
     private function validateServiceConfiguration(string $serviceName): void
     {
         $config = config("ebilet-common.services.{$serviceName}");
@@ -30,26 +30,26 @@ class ServiceClientFactory
                 "Service configuration not found for: {$serviceName}"
             );
         }
-
+        
         if (!isset($config['url'])) {
             throw new ServiceConfigurationException(
                 "Service URL not configured for: {$serviceName}"
             );
         }
     }
-
+    
     /**
-     * Get all available service names
-     */
+    * Get all available service names
+    */
     public function getAvailableServices(): array
     {
         $config = config('ebilet-common.services', []);
         return array_keys($config);
     }
-
+    
     /**
-     * Check if service is configured
-     */
+    * Check if service is configured
+    */
     public function isServiceConfigured(string $serviceName): bool
     {
         $config = config("ebilet-common.services.{$serviceName}");

@@ -317,7 +317,12 @@ Bu paket MIT lisansı altında lisanslanmıştır.
 
 ## 🔄 Versiyon Geçmişi
 
-### v1.2.2 (Current)
+### v1.2.3 (Current)
+- **ServiceClient Class Name Fix**: `BaseServiceClient.php` → `ServiceClient.php` dosya adı düzeltmesi
+- **Autoload Issues**: Composer autoload sorunları çözüldü
+- **Class Not Found Error**: ServiceClient sınıfı bulunamama hatası düzeltildi
+
+### v1.2.2
 - **Service Communication System**: Tamamen yeni servisler arası iletişim sistemi
 - **SOLID Architecture**: Interface, Factory, Manager pattern'leri ile temiz mimari
 - **User & Order Facades**: Basit facade kullanımı (`User::get()`, `Order::post()`)
