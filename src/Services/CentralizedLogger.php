@@ -13,40 +13,14 @@ class CentralizedLogger
 
     public function __construct()
     {
-        // Use Laravel's log system for debugging
-        if (class_exists('\Log')) {
-            \Log::info("CentralizedLogger: Constructor started");
-        }
-        
         $this->queueManager = \Ebilet\Common\Managers\QueueManager::getInstance();
-        if (class_exists('\Log')) {
-            \Log::info("CentralizedLogger: QueueManager instance created");
-        }
-        
-        // Set RabbitMQ as default provider
+
         $rabbitMQProvider = new \Ebilet\Common\Providers\RabbitMQProvider();
         $this->queueManager->setProvider($rabbitMQProvider);
-        if (class_exists('\Log')) {
-            \Log::info("CentralizedLogger: RabbitMQProvider set");
-        }
-        
-        // Try to connect and log the result
-        $connected = $this->queueManager->connect();
-        if (!$connected) {
-            if (class_exists('\Log')) {
-                \Log::error("CentralizedLogger: Failed to connect to RabbitMQ. Logs will be written to file only.");
-            }
-        } else {
-            if (class_exists('\Log')) {
-                \Log::info("CentralizedLogger: Successfully connected to RabbitMQ.");
-            }
-        }
-        
+
+        $this->queueManager->connect();
+
         $this->serviceName = $this->getEnv('APP_NAME', 'unknown-service');
-        if (class_exists('\Log')) {
-            \Log::info("CentralizedLogger: Service name set to: " . $this->serviceName);
-            \Log::info("CentralizedLogger: Constructor completed");
-        }
     }
 
     /**

@@ -26,6 +26,7 @@ class HttpLoggingConfig implements HttpLoggingConfigInterface
     {
         return [
             'enabled' => $this->getEnv('EBILET_HTTP_LOGGING_ENABLED', true),
+            'endpoints' => $this->getEnv('EBILET_HTTP_LOGGING_ENDPOINTS', '*'),
             'excluded_paths' => $this->getEnvArray('EBILET_HTTP_LOGGING_EXCLUDED_PATHS', [
                 '/health',
                 '/metrics',
@@ -113,6 +114,14 @@ class HttpLoggingConfig implements HttpLoggingConfigInterface
     public function isEnabled(): bool
     {
         return $this->config['enabled'];
+    }
+
+    /**
+     * Get endpoints to log
+     */
+    public function getEndpoints()
+    {
+        return $this->config['endpoints'];
     }
 
     /**

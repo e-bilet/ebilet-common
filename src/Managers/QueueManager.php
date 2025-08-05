@@ -8,22 +8,20 @@ use Ebilet\Common\Enums\LogMessageType;
 
 /**
  * Queue Manager
- *
- * Merkezi queue yönetimi için singleton pattern kullanan manager sınıfı.
- * Strategy pattern ile farklı queue provider'ları destekler.
+ * 
+ * Merkezi queue yönetimi için singleton sınıf.
+ * RabbitMQ ve diğer queue sistemleri için provider pattern kullanır.
  */
 class QueueManager
 {
     private static ?self $instance = null;
     private ?QueueProviderInterface $provider = null;
     private bool $isConnected = false;
-    private string $logChannel = 'log-messages';
-    private string $metricsChannel = 'metrics';
-    private string $eventsChannel = 'events';
+    private array $config;
 
     private function __construct()
     {
-        // Private constructor for singleton pattern
+        $this->config = config('ebilet-common', []);
     }
 
     /**
@@ -58,27 +56,13 @@ class QueueManager
      */
     public function connect(): bool
     {
-        if (class_exists('\Log')) {
-            \Log::info("QueueManager: Starting connection");
-        }
-
         if (!$this->provider) {
-            if (class_exists('\Log')) {
-                \Log::info("QueueManager: Creating new RabbitMQProvider");
-            }
             $this->provider = new RabbitMQProvider();
         }
 
         $this->isConnected = $this->provider->connect();
 
-        if (class_exists('\Log')) {
-            \Log::info("QueueManager: Provider connection result: " . ($this->isConnected ? 'success' : 'failed'));
-        }
-
         if ($this->isConnected) {
-            if (class_exists('\Log')) {
-                \Log::info("QueueManager: Initializing channels");
-            }
             $this->initializeChannels();
         }
 
@@ -110,25 +94,26 @@ class QueueManager
     private function initializeChannels(): void
     {
         if (!$this->provider) {
-            if (class_exists('\Log')) {
-                \Log::error("QueueManager: No provider available for channel initialization");
-            }
             return;
         }
 
-        if (class_exists('\Log')) {
-            \Log::info("QueueManager: Starting channel initialization");
-        }
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        $settings = $queueConfig['settings'] ?? [];
 
-        // Create log-messages channel
+        // Initialize log-messages channel
+        $logChannel = $channels['log_messages'] ?? 'log-messages';
+        $logSettings = $settings['log_messages'] ?? [];
+        
         try {
-            $result = $this->provider->createQueue($this->logChannel, [
-                'durable' => true,
+            $result = $this->provider->createQueue($logChannel, [
+                'durable' => $logSettings['durable'] ?? true,
                 'arguments' => [
-                    'x-message-ttl' => 86400000, // 24 hours
-                    'x-max-length' => 10000
+                    'x-message-ttl' => $logSettings['ttl'] ?? 86400000,
+                    'x-max-length' => $logSettings['max_length'] ?? 10000
                 ]
             ]);
+            
             if (class_exists('\Log')) {
                 \Log::info("QueueManager: log-messages channel creation result: " . ($result ? 'success' : 'failed'));
             }
@@ -138,15 +123,19 @@ class QueueManager
             }
         }
 
-        // Create metrics channel
+        // Initialize metrics channel
+        $metricsChannel = $channels['metrics'] ?? 'metrics';
+        $metricsSettings = $settings['metrics'] ?? [];
+        
         try {
-            $result = $this->provider->createQueue($this->metricsChannel, [
-                'durable' => true,
+            $result = $this->provider->createQueue($metricsChannel, [
+                'durable' => $metricsSettings['durable'] ?? true,
                 'arguments' => [
-                    'x-message-ttl' => 604800000, // 7 days
-                    'x-max-length' => 50000
+                    'x-message-ttl' => $metricsSettings['ttl'] ?? 604800000,
+                    'x-max-length' => $metricsSettings['max_length'] ?? 50000
                 ]
             ]);
+            
             if (class_exists('\Log')) {
                 \Log::info("QueueManager: metrics channel creation result: " . ($result ? 'success' : 'failed'));
             }
@@ -156,15 +145,19 @@ class QueueManager
             }
         }
 
-        // Create events channel
+        // Initialize events channel
+        $eventsChannel = $channels['events'] ?? 'events';
+        $eventsSettings = $settings['events'] ?? [];
+        
         try {
-            $result = $this->provider->createQueue($this->eventsChannel, [
-                'durable' => true,
+            $result = $this->provider->createQueue($eventsChannel, [
+                'durable' => $eventsSettings['durable'] ?? true,
                 'arguments' => [
-                    'x-message-ttl' => 2592000000, // 30 days
-                    'x-max-length' => 100000
+                    'x-message-ttl' => $eventsSettings['ttl'] ?? 2592000000,
+                    'x-max-length' => $eventsSettings['max_length'] ?? 100000
                 ]
             ]);
+            
             if (class_exists('\Log')) {
                 \Log::info("QueueManager: events channel creation result: " . ($result ? 'success' : 'failed'));
             }
@@ -172,10 +165,6 @@ class QueueManager
             if (class_exists('\Log')) {
                 \Log::error("QueueManager: Failed to create events channel: " . $e->getMessage());
             }
-        }
-
-        if (class_exists('\Log')) {
-            \Log::info("QueueManager: Channel initialization completed");
         }
     }
 
@@ -189,6 +178,9 @@ class QueueManager
         }
 
         $messageType ??= LogMessageType::APPLICATION_INFO;
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        $deliveryMode = $queueConfig['delivery_mode'] ?? 2;
 
         $enrichedLogData = array_merge($logData, [
             'message_type' => $messageType->value,
@@ -201,8 +193,10 @@ class QueueManager
             'memory_peak' => $logData['memory_peak'] ?? memory_get_peak_usage(true)
         ]);
 
-        return $this->provider->send($this->logChannel, $enrichedLogData, [
-            'delivery_mode' => 2, // Persistent
+        $logChannel = $channels['log_messages'] ?? 'log-messages';
+
+        return $this->provider->send($logChannel, $enrichedLogData, [
+            'delivery_mode' => $deliveryMode,
             'priority' => $messageType->isCritical() ? 10 : 0,
             'timestamp' => time()
         ]);
@@ -217,14 +211,21 @@ class QueueManager
             return false;
         }
 
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        $deliveryMode = $queueConfig['delivery_mode'] ?? 2;
+
         $enrichedMetricData = array_merge($metricData, [
             'timestamp' => $metricData['timestamp'] ?? date('c'),
             'service_name' => $metricData['service'] ?? $this->getServiceName(),
-            'host' => $metricData['host'] ?? gethostname()
+            'host' => $metricData['host'] ?? gethostname(),
+            'pid' => $metricData['pid'] ?? getmypid()
         ]);
 
-        return $this->provider->send($this->metricsChannel, $enrichedMetricData, [
-            'delivery_mode' => 2, // Persistent
+        $metricsChannel = $channels['metrics'] ?? 'metrics';
+
+        return $this->provider->send($metricsChannel, $enrichedMetricData, [
+            'delivery_mode' => $deliveryMode,
             'timestamp' => time()
         ]);
     }
@@ -238,20 +239,27 @@ class QueueManager
             return false;
         }
 
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        $deliveryMode = $queueConfig['delivery_mode'] ?? 2;
+
         $enrichedEventData = array_merge($eventData, [
             'timestamp' => $eventData['timestamp'] ?? date('c'),
             'service_name' => $eventData['service'] ?? $this->getServiceName(),
-            'host' => $eventData['host'] ?? gethostname()
+            'host' => $eventData['host'] ?? gethostname(),
+            'pid' => $eventData['pid'] ?? getmypid()
         ]);
 
-        return $this->provider->send($this->eventsChannel, $enrichedEventData, [
-            'delivery_mode' => 2, // Persistent
+        $eventsChannel = $channels['events'] ?? 'events';
+
+        return $this->provider->send($eventsChannel, $enrichedEventData, [
+            'delivery_mode' => $deliveryMode,
             'timestamp' => time()
         ]);
     }
 
     /**
-     * Send generic message to queue
+     * Send message to specific queue
      */
     public function send(string $queue, array $data, array $options = []): bool
     {
@@ -259,7 +267,15 @@ class QueueManager
             return false;
         }
 
-        return $this->provider->send($queue, $data, $options);
+        $queueConfig = $this->config['queues'] ?? [];
+        $deliveryMode = $queueConfig['delivery_mode'] ?? 2;
+
+        $defaultOptions = [
+            'delivery_mode' => $deliveryMode,
+            'timestamp' => time()
+        ];
+
+        return $this->provider->send($queue, $data, array_merge($defaultOptions, $options));
     }
 
     /**
@@ -295,35 +311,42 @@ class QueueManager
     }
 
     /**
-     * Get service name from environment
+     * Get service name from config
      */
     private function getServiceName(): string
     {
-        return $_ENV['APP_NAME'] ?? $_SERVER['APP_NAME'] ?? getenv('APP_NAME') ?? 'unknown-service';
+        $loggingConfig = $this->config['logging'] ?? [];
+        return $loggingConfig['service_name'] ?? 'unknown-service';
     }
 
     /**
-     * Get log channel name
+     * Get log channel name from config
      */
     public function getLogChannel(): string
     {
-        return $this->logChannel;
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        return $channels['log_messages'] ?? 'log-messages';
     }
 
     /**
-     * Get metrics channel name
+     * Get metrics channel name from config
      */
     public function getMetricsChannel(): string
     {
-        return $this->metricsChannel;
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        return $channels['metrics'] ?? 'metrics';
     }
 
     /**
-     * Get events channel name
+     * Get events channel name from config
      */
     public function getEventsChannel(): string
     {
-        return $this->eventsChannel;
+        $queueConfig = $this->config['queues'] ?? [];
+        $channels = $queueConfig['channels'] ?? [];
+        return $channels['events'] ?? 'events';
     }
 
     /**
