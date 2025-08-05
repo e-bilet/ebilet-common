@@ -1,7 +1,6 @@
 {
     "name": "ebilet/common",
     "description": "E-Bilet Common Package - Merkezi loglama ve ortak işlevler için",
-    "version": "1.2.1",
     "type": "library",
     "license": "MIT",
     "authors": [

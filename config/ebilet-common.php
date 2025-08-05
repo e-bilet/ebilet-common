@@ -264,4 +264,24 @@ return [
         'log_suspicious_activity' => env('EBILET_LOG_SUSPICIOUS_ACTIVITY', true),
         'suspicious_activity_threshold' => env('EBILET_SUSPICIOUS_ACTIVITY_THRESHOLD', 5),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Service Communication Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Servisler arası iletişim ayarları. Bu ayarlar mikroservisler
+    | arası REST API iletişimi için kullanılır.
+    |
+    */
+    'services' => [
+        'user' => [
+            'url' => env('USER_SERVICE_URL', 'http://host.docker.internal:8081'),
+            'timeout' => env('USER_SERVICE_TIMEOUT', 30),
+        ],
+        'auth' => [
+            'url' => env('AUTH_SERVICE_URL', 'http://host.docker.internal:8080'),
+            'timeout' => env('AUTH_SERVICE_TIMEOUT', 30),
+        ],
+    ],
 ]; 
