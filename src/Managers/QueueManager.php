@@ -96,35 +96,55 @@ class QueueManager
     private function initializeChannels(): void
     {
         if (!$this->provider) {
+            error_log("QueueManager: No provider available for channel initialization");
             return;
         }
 
+        error_log("QueueManager: Starting channel initialization");
+
         // Create log-messages channel
-        $this->provider->createQueue($this->logChannel, [
-            'durable' => true,
-            'arguments' => [
-                'x-message-ttl' => 86400000, // 24 hours
-                'x-max-length' => 10000
-            ]
-        ]);
+        try {
+            $result = $this->provider->createQueue($this->logChannel, [
+                'durable' => true,
+                'arguments' => [
+                    'x-message-ttl' => 86400000, // 24 hours
+                    'x-max-length' => 10000
+                ]
+            ]);
+            error_log("QueueManager: log-messages channel creation result: " . ($result ? 'success' : 'failed'));
+        } catch (\Exception $e) {
+            error_log("QueueManager: Failed to create log-messages channel: " . $e->getMessage());
+        }
 
         // Create metrics channel
-        $this->provider->createQueue($this->metricsChannel, [
-            'durable' => true,
-            'arguments' => [
-                'x-message-ttl' => 604800000, // 7 days
-                'x-max-length' => 50000
-            ]
-        ]);
+        try {
+            $result = $this->provider->createQueue($this->metricsChannel, [
+                'durable' => true,
+                'arguments' => [
+                    'x-message-ttl' => 604800000, // 7 days
+                    'x-max-length' => 50000
+                ]
+            ]);
+            error_log("QueueManager: metrics channel creation result: " . ($result ? 'success' : 'failed'));
+        } catch (\Exception $e) {
+            error_log("QueueManager: Failed to create metrics channel: " . $e->getMessage());
+        }
 
         // Create events channel
-        $this->provider->createQueue($this->eventsChannel, [
-            'durable' => true,
-            'arguments' => [
-                'x-message-ttl' => 2592000000, // 30 days
-                'x-max-length' => 100000
-            ]
-        ]);
+        try {
+            $result = $this->provider->createQueue($this->eventsChannel, [
+                'durable' => true,
+                'arguments' => [
+                    'x-message-ttl' => 2592000000, // 30 days
+                    'x-max-length' => 100000
+                ]
+            ]);
+            error_log("QueueManager: events channel creation result: " . ($result ? 'success' : 'failed'));
+        } catch (\Exception $e) {
+            error_log("QueueManager: Failed to create events channel: " . $e->getMessage());
+        }
+
+        error_log("QueueManager: Channel initialization completed");
     }
 
     /**
