@@ -209,10 +209,10 @@ class RabbitMQProvider implements QueueProviderInterface
 
             $stats = $this->channel->queue_declare(
                 $queue,
-                true, // passive
-                true, // durable
-                false, // exclusive
-                false  // auto_delete
+                true,
+                true,
+                false,
+                false
             );
 
             return [
